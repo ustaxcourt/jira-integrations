@@ -1,0 +1,106 @@
+import base64
+import json
+import logging
+import os
+import urllib.error
+import urllib.request
+from http import HTTPStatus
+
+from adf import markdown_to_adf
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+JIRA_BASE_URL = os.environ["JIRA_BASE_URL"].rstrip("/")
+JIRA_USER_EMAIL = os.environ["JIRA_USER_EMAIL"]
+JIRA_API_TOKEN = os.environ["JIRA_API_TOKEN"]
+
+# In Lambda the zip root contains both handler.py and definitions/.
+# For local dev, set DEFINITIONS_DIR to the absolute path of the definitions folder.
+DEFINITIONS_DIR = os.environ.get(
+    "DEFINITIONS_DIR",
+    os.path.join(os.path.dirname(__file__), "definitions"),
+)
+
+
+def _auth_header() -> str:
+    credentials = f"{JIRA_USER_EMAIL}:{JIRA_API_TOKEN}"
+    return "Basic " + base64.b64encode(credentials.encode()).decode()
+
+
+def _project_dir(project_key: str) -> str:
+    project_dir = os.path.normpath(os.path.join(DEFINITIONS_DIR, project_key))
+    # Guard against path traversal via a malicious project key
+    if not project_dir.startswith(os.path.normpath(DEFINITIONS_DIR) + os.sep):
+        raise ValueError(f"Invalid project key: {project_key}")
+    return project_dir
+
+
+def _load_definition(project_key: str) -> str:
+    filepath = os.path.join(_project_dir(project_key), "definition-of-done.md")
+    with open(filepath, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def _load_dod_field_id(project_key: str) -> str:
+    config_path = os.path.join(_project_dir(project_key), "config.json")
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)["dod_field_id"]
+
+
+def _update_dod_field(issue_key: str, field_id: str, content: str) -> None:
+    url = f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}"
+    payload = json.dumps({"fields": {field_id: markdown_to_adf(content)}}).encode()
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        method="PUT",
+        headers={
+            "Authorization": _auth_header(),
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+    )
+    with urllib.request.urlopen(req) as resp:
+        logger.info("Updated %s — HTTP %s", issue_key, resp.status)
+
+
+def handler(event, context):
+    try:
+        body = json.loads(event.get("body") or "{}")
+        logger.info("Received body: %s", event.get("body"))
+
+        issue_key = body["key"]
+        project_key = body["fields"]["project"]["key"]
+
+        logger.info("New issue %s in project %s — populating Definition of Done", issue_key, project_key)
+
+        dod_field_id = _load_dod_field_id(project_key)
+        dod_content = _load_definition(project_key)
+        _update_dod_field(issue_key, dod_field_id, dod_content)
+
+        return {
+            "statusCode": HTTPStatus.OK,
+            "body": json.dumps({"message": f"Definition of Done set on {issue_key}"}),
+        }
+
+    except ValueError as exc:
+        logger.warning("Config/mapping error: %s", exc)
+        return {
+            "statusCode": HTTPStatus.BAD_REQUEST,
+            "body": json.dumps({"error": str(exc)}),
+        }
+
+    except urllib.error.HTTPError as exc:
+        logger.error("Jira API error: %s %s", exc.code, exc.reason)
+        return {
+            "statusCode": HTTPStatus.INTERNAL_SERVER_ERROR,
+            "body": json.dumps({"error": "Failed to update Jira issue"}),
+        }
+
+    except KeyError as exc:
+        logger.error("Unexpected webhook payload shape — missing key: %s", exc)
+        return {
+            "statusCode": HTTPStatus.BAD_REQUEST,
+            "body": json.dumps({"error": f"Invalid webhook payload: missing key {exc}"}),
+        }
