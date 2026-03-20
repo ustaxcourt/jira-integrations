@@ -4,10 +4,10 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/**'
-      - 'definitions/**'
-      - 'terraform/*.tf'
-      - '.github/workflows/deploy.yml'
+      - "src/**"
+      - "definitions/**"
+      - "terraform/*.tf"
+      - ".github/workflows/deploy.yml"
 
 permissions:
   id-token: write
@@ -38,7 +38,7 @@ jobs:
 
       - name: Terraform Init
         working-directory: terraform
-        run: | 
+        run: |
           terraform init \
             -backend-config="bucket=${{ vars.STATE_BUCKET_NAME }}" \
             -backend-config="key=jira-integrations/terraform.tfstate" \
@@ -51,7 +51,4 @@ jobs:
           TF_VAR_jira_base_url: ${{ secrets.JIRA_BASE_URL }}
           TF_VAR_jira_user_email: ${{ secrets.JIRA_USER_EMAIL }}
           TF_VAR_jira_api_token: ${{ secrets.JIRA_API_TOKEN }}
-          TF_VAR_state_bucket_name: ${{ vars.STATE_BUCKET_NAME }}
-          TF_VAR_github_org: ${{ github.repository_owner }}
-          TF_VAR_github_repo: ${{ github.event.repository.name }}
         run: terraform apply -auto-approve

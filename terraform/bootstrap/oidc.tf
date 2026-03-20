@@ -43,44 +43,63 @@ resource "aws_iam_role" "bootstrap_github_actions" {
   assume_role_policy = data.aws_iam_policy_document.github_actions_assume_role.json
 }
 
-# ── Permissions needed to apply the bootstrap ─────────────────────────────────
+# ── Permissions needed to deploy terraform/*.tf ───────────────────────────────
 
 data "aws_iam_policy_document" "bootstrap_permissions" {
-  # Manage the Terraform state bucket
+  # Read/write Terraform state and S3 native lock file
   statement {
-    sid    = "StateBucketManage"
+    sid    = "TerraformStateReadWrite"
     effect = "Allow"
     actions = [
-      "s3:CreateBucket",
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
       "s3:ListBucket",
-      "s3:GetBucketVersioning",
-      "s3:PutBucketVersioning",
-      "s3:GetEncryptionConfiguration",
-      "s3:PutEncryptionConfiguration",
-      "s3:GetBucketPublicAccessBlock",
-      "s3:PutBucketPublicAccessBlock",
-      "s3:GetBucketTagging",
-      "s3:PutBucketTagging",
     ]
-    resources = ["arn:aws:s3:::${var.state_bucket_name}"]
+    resources = [
+      "arn:aws:s3:::${var.state_bucket_name}",
+      "arn:aws:s3:::${var.state_bucket_name}/*",
+    ]
   }
 
-  # Manage the GitHub OIDC provider
+  # Lambda function
   statement {
-    sid    = "OIDCProviderManage"
+    sid    = "LambdaManage"
     effect = "Allow"
     actions = [
-      "iam:CreateOpenIDConnectProvider",
-      "iam:GetOpenIDConnectProvider",
-      "iam:UpdateOpenIDConnectProviderThumbprint",
-      "iam:AddClientIDToOpenIDConnectProvider",
+      "lambda:CreateFunction",
+      "lambda:GetFunction",
+      "lambda:UpdateFunctionCode",
+      "lambda:UpdateFunctionConfiguration",
+      "lambda:AddPermission",
+      "lambda:RemovePermission",
+      "lambda:GetPolicy",
+      "lambda:TagResource",
+      "lambda:UntagResource",
+      "lambda:ListVersionsByFunction",
+      "lambda:GetFunctionCodeSigningConfig",
     ]
-    resources = [local.oidc_provider_arn]
+    resources = ["arn:aws:lambda:*:${data.aws_caller_identity.current.account_id}:function:jira-dod-webhook"]
   }
 
-  # Manage this role (and any other bootstrap IAM roles)
+  # API Gateway HTTP API
   statement {
-    sid    = "BootstrapRoleManage"
+    sid    = "APIGatewayManage"
+    effect = "Allow"
+    actions = [
+      "apigateway:GET",
+      "apigateway:POST",
+      "apigateway:PUT",
+      "apigateway:PATCH",
+      "apigateway:DELETE",
+      "apigateway:TagResource",
+    ]
+    resources = ["arn:aws:apigateway:*::*"]
+  }
+
+  # IAM — Lambda execution role only
+  statement {
+    sid    = "LambdaRoleManage"
     effect = "Allow"
     actions = [
       "iam:CreateRole",
@@ -89,13 +108,13 @@ data "aws_iam_policy_document" "bootstrap_permissions" {
       "iam:DeleteRole",
       "iam:TagRole",
       "iam:UntagRole",
-      "iam:ListRolePolicies",
-      "iam:GetRolePolicy",
-      "iam:PutRolePolicy",
-      "iam:DeleteRolePolicy",
+      "iam:PassRole",
+      "iam:AttachRolePolicy",
+      "iam:DetachRolePolicy",
       "iam:ListAttachedRolePolicies",
+      "iam:ListRolePolicies",
     ]
-    resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/jira-integrations-bootstrap-*"]
+    resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/jira-dod-webhook-role"]
   }
 }
 
