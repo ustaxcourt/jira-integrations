@@ -100,8 +100,8 @@ def handler(event, context):
         body = json.loads(event.get("body") or "{}")
         logger.info("Received body: %s", event.get("body"))
 
-        issue_key = body["key"]
-        project_key = body["fields"]["project"]["key"]
+        issue_key = body["issue"]["key"]
+        project_key = body["issue"]["fields"]["project"]["key"]
 
         logger.info("New issue %s in project %s — populating Definition of Done", issue_key, project_key)
 
@@ -122,7 +122,8 @@ def handler(event, context):
         }
 
     except urllib.error.HTTPError as exc:
-        logger.error("Jira API error: %s %s", exc.code, exc.reason)
+        error_body = exc.read().decode(errors="replace")
+        logger.error("Jira API error: %s %s — %s", exc.code, exc.reason, error_body)
         return {
             "statusCode": HTTPStatus.INTERNAL_SERVER_ERROR,
             "body": json.dumps({"error": "Failed to update Jira issue"}),
