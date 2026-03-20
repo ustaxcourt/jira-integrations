@@ -1,4 +1,6 @@
 import base64
+import hashlib
+import hmac
 import json
 import logging
 import os
@@ -14,6 +16,7 @@ logger.setLevel(logging.INFO)
 JIRA_BASE_URL = os.environ["JIRA_BASE_URL"].rstrip("/")
 JIRA_USER_EMAIL = os.environ["JIRA_USER_EMAIL"]
 JIRA_API_TOKEN = os.environ["JIRA_API_TOKEN"]
+WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "")
 
 # In Lambda the zip root contains both handler.py and definitions/.
 # For local dev, set DEFINITIONS_DIR to the absolute path of the definitions folder.
@@ -26,6 +29,27 @@ DEFINITIONS_DIR = os.environ.get(
 def _auth_header() -> str:
     credentials = f"{JIRA_USER_EMAIL}:{JIRA_API_TOKEN}"
     return "Basic " + base64.b64encode(credentials.encode()).decode()
+
+
+def _verify_signature(event: dict) -> bool:
+    """Return True if the request HMAC-SHA256 signature is valid (or no secret is configured)."""
+    if not WEBHOOK_SECRET:
+        logger.warning("WEBHOOK_SECRET is not set — skipping signature verification")
+        return True
+
+    sig_header = (event.get("headers") or {}).get("x-hub-signature", "")
+    if not sig_header.startswith("sha256="):
+        logger.warning("Missing or malformed x-hub-signature header")
+        return False
+
+    raw_body = event.get("body") or ""
+    if event.get("isBase64Encoded"):
+        body_bytes = base64.b64decode(raw_body)
+    else:
+        body_bytes = raw_body.encode()
+
+    expected = hmac.new(WEBHOOK_SECRET.encode(), body_bytes, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(f"sha256={expected}", sig_header)
 
 
 def _project_dir(project_key: str) -> str:
@@ -66,6 +90,12 @@ def _update_dod_field(issue_key: str, field_id: str, content: str) -> None:
 
 
 def handler(event, context):
+    if not _verify_signature(event):
+        return {
+            "statusCode": HTTPStatus.UNAUTHORIZED,
+            "body": json.dumps({"error": "Invalid signature"}),
+        }
+
     try:
         body = json.loads(event.get("body") or "{}")
         logger.info("Received body: %s", event.get("body"))

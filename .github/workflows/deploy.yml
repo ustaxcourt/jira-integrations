@@ -51,4 +51,5 @@ jobs:
           TF_VAR_jira_base_url: ${{ secrets.JIRA_BASE_URL }}
           TF_VAR_jira_user_email: ${{ secrets.JIRA_USER_EMAIL }}
           TF_VAR_jira_api_token: ${{ secrets.JIRA_API_TOKEN }}
+          TF_VAR_webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
         run: terraform apply -auto-approve
