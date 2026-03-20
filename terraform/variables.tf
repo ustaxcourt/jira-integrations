@@ -21,3 +21,10 @@ variable "jira_api_token" {
   type        = string
   sensitive   = true
 }
+
+variable "webhook_secret" {
+  description = "Secret used to verify the HMAC-SHA256 signature on incoming Jira webhook requests (X-Hub-Signature header)"
+  type        = string
+  sensitive   = true
+  default     = ""
+}

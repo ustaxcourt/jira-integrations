@@ -36,6 +36,7 @@ resource "aws_lambda_function" "jira_webhook" {
       JIRA_BASE_URL   = var.jira_base_url
       JIRA_USER_EMAIL = var.jira_user_email
       JIRA_API_TOKEN  = var.jira_api_token
+      WEBHOOK_SECRET  = var.webhook_secret
     }
   }
 }
