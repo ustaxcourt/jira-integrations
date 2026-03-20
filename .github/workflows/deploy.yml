@@ -38,7 +38,12 @@ jobs:
 
       - name: Terraform Init
         working-directory: terraform
-        run: terraform init -backend-config=backend.hcl
+        run: | 
+          terraform init \
+            -backend-config="bucket=${{ vars.STATE_BUCKET_NAME }}" \
+            -backend-config="key=jira-integrations/terraform.tfstate" \
+            -backend-config="region=${{ vars.AWS_REGION || 'us-east-1' }}" \
+            -backend-config="encrypt=true"
 
       - name: Terraform Apply
         working-directory: terraform
