@@ -98,7 +98,7 @@ def handler(event, context):
 
         logger.info("New issue %s in project %s — populating Definition of Done", issue_key, project_key)
 
-        dod_field_id = "customfield_10141"  # Default field ID for "Definition of Done" — override in config.json if different
+        dod_field_id = "customfield_10141"  # Field ID for the "Definition of Done" custom field in Jira (hardcoded)
         dod_content = _load_definition(project_key)
         _update_dod_field(issue_key, dod_field_id, dod_content)
 

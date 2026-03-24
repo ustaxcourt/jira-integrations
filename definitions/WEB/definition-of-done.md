@@ -7,7 +7,7 @@
 - [ ] Unit Testing: Application code achieves 90% coverage and is tested in isolation with no open defects. 
 - [ ] Integration Testing: The user story is tested in combination with related features or modules with no open defects. 
 - [ ] Technical debt is documented in Monday, as needed.  
-- [ ] The story meets 5[08 accessibility standards](https://ustc-isd.monday.com/boards/7540668984/columns/monday_doc_mknaevt5?blockId=ca294a80-c7ed-4e9a-a766-a83f601f1891&doc_id=8517508952); and the work has been run through an accessibilty tool (like [WAVE ](https://teams.microsoft.com/l/message/19:meeting_ODg1ZGJjNzMtYzAxYS00ZjdiLTg4ZTgtMTFjNDUxMzMzZWVi@thread.v2/1765303202077?context={%22contextType%22:%22chat%22})or [AXE](https://chromewebstore.google.com/detail/axe-devtools-web-accessib/lhdoppojpmngadmnindnejefpokejbdd)) to detect issues prior to sending to UX review. See steps 4-9 of the [UX accessibility testing guidelines ](https://ustaxcourt.sharepoint.com/:w:/r/sites/Website-adhoc/_layouts/15/Doc.aspx?action=default&file=UX+Review+and+Accessibility+Testing+Process+-+WebApp.docx&mobileredirect=true&sourcedoc={5123F94B-78B6-4407-A703-AFBE5B601432})
+- [ ] The story meets 508 accessibility standards](https://ustc-isd.monday.com/boards/7540668984/columns/monday_doc_mknaevt5?blockId=ca294a80-c7ed-4e9a-a766-a83f601f1891&doc_id=8517508952); and the work has been run through an accessibility tool (like [WAVE](https://teams.microsoft.com/l/message/19:meeting_ODg1ZGJjNzMtYzAxYS00ZjdiLTg4ZTgtMTFjNDUxMzMzZWVi@thread.v2/1765303202077?context={%22contextType%22:%22chat%22}) or [AXE](https://chromewebstore.google.com/detail/axe-devtools-web-accessib/lhdoppojpmngadmnindnejefpokejbdd)) to detect issues prior to sending to UX review. See steps 4-9 of the [UX accessibility testing guidelines ](https://ustaxcourt.sharepoint.com/:w:/r/sites/Website-adhoc/_layouts/15/Doc.aspx?action=default&file=UX+Review+and+Accessibility+Testing+Process+-+WebApp.docx&mobileredirect=true&sourcedoc={5123F94B-78B6-4407-A703-AFBE5B601432})
 
   - Cross Browser Testing, 
   - Mobile & Tablet views, 
@@ -30,10 +30,10 @@
 
 - [ ] Check that the AC has been met
 - [ ] Perform a visual inspection (font specs, alignment, spacing, colors, icons)
-- [ ] The solution is coded responsively: mocs include desktop, mobile and tablet views
+- [ ] The solution is coded responsively: mocks include desktop, mobile and tablet views
 - [ ] Perform a11y checks (WAVE Evaluation tool, axe DevTools, keyboard-only navigation, screen reader)
 - [ ] Review on the four most popular browsers (Chrome, Safari, Edge, Firefox)
-- [ ]  Review on a mobile device (including native screen reader, in portrait and landscape mode//s)
+- [ ]  Review on a mobile device (including native screen reader, in portrait and landscape modes)
 
 ## Product Owner Items
 
