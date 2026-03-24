@@ -65,13 +65,6 @@ def _load_definition(project_key: str) -> str:
     with open(filepath, "r", encoding="utf-8") as f:
         return f.read()
 
-
-def _load_dod_field_id(project_key: str) -> str:
-    config_path = os.path.join(_project_dir(project_key), "config.json")
-    with open(config_path, "r", encoding="utf-8") as f:
-        return json.load(f)["dod_field_id"]
-
-
 def _update_dod_field(issue_key: str, field_id: str, content: str) -> None:
     url = f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}"
     payload = json.dumps({"fields": {field_id: markdown_to_adf(content)}}).encode()
@@ -105,7 +98,7 @@ def handler(event, context):
 
         logger.info("New issue %s in project %s — populating Definition of Done", issue_key, project_key)
 
-        dod_field_id = _load_dod_field_id(project_key)
+        dod_field_id = "customfield_10141"  # Field ID for the "Definition of Done" custom field in Jira (hardcoded)
         dod_content = _load_definition(project_key)
         _update_dod_field(issue_key, dod_field_id, dod_content)
 
