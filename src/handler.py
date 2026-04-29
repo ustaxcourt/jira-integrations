@@ -99,7 +99,20 @@ def handler(event, context):
         logger.info("New issue %s in project %s — populating Definition of Done", issue_key, project_key)
 
         dod_field_id = "customfield_10141"  # Field ID for the "Definition of Done" custom field in Jira (hardcoded)
-        dod_content = _load_definition(project_key)
+        try:
+            dod_content = _load_definition(project_key)
+        except FileNotFoundError:
+            logger.warning(
+                "Definition of Done file not found for project %s — skipping %s",
+                project_key,
+                issue_key,
+            )
+            return {
+                "statusCode": HTTPStatus.OK,
+                "body": json.dumps({
+                    "message": f"Definition of Done file not found for {issue_key}"
+                }),
+            }
         _update_dod_field(issue_key, dod_field_id, dod_content)
 
         return {
