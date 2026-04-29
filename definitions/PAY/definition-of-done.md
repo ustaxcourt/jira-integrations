@@ -28,7 +28,7 @@
 
 - [ ] All required documentation (technical, diagrams, deployment) complete according to the acceptance criteria.
 - [ ] Architecture Design Records (ADRs) created in GitHub to document major decisions.
-- [ ] Changesets documentation has been included in Pull Request
+- [ ] Changesets documentation included in Pull Request that describes the work being completed as well as whether this is a major, minor, or patch update
 
 ## Product Owner Checklist
 
