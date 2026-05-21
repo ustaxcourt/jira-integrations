@@ -2,6 +2,25 @@ import re
 import uuid
 
 
+def parse_inline(text: str) -> list:
+    """Parse inline markdown links into ADF inline nodes."""
+    nodes = []
+    pattern = re.compile(r'\[([^\]]+)\]\(([^)]+)\)')
+    last_end = 0
+    for m in pattern.finditer(text):
+        if m.start() > last_end:
+            nodes.append({"type": "text", "text": text[last_end:m.start()]})
+        nodes.append({
+            "type": "text",
+            "text": m.group(1).strip(),
+            "marks": [{"type": "link", "attrs": {"href": m.group(2).strip()}}],
+        })
+        last_end = m.end()
+    if last_end < len(text):
+        nodes.append({"type": "text", "text": text[last_end:]})
+    return nodes if nodes else [{"type": "text", "text": text}]
+
+
 def markdown_to_adf(markdown: str) -> dict:
     """Convert a subset of Markdown to Atlassian Document Format (ADF)."""
     lines = markdown.splitlines()
@@ -22,7 +41,7 @@ def markdown_to_adf(markdown: str) -> dict:
             content.append({
                 "type": "heading",
                 "attrs": {"level": level},
-                "content": [{"type": "text", "text": heading_match.group(2).strip()}],
+                "content": parse_inline(heading_match.group(2).strip()),
             })
             i += 1
             continue
@@ -36,7 +55,7 @@ def markdown_to_adf(markdown: str) -> dict:
                 task_items.append({
                     "type": "taskItem",
                     "attrs": {"localId": str(uuid.uuid4()), "state": state},
-                    "content": [{"type": "text", "text": m.group(2).strip()}],
+                    "content": parse_inline(m.group(2).strip()),
                 })
                 i += 1
             content.append({
@@ -55,7 +74,7 @@ def markdown_to_adf(markdown: str) -> dict:
                     "type": "listItem",
                     "content": [{
                         "type": "paragraph",
-                        "content": [{"type": "text", "text": m.group(1).strip()}],
+                        "content": parse_inline(m.group(1).strip()),
                     }],
                 })
                 i += 1
@@ -65,7 +84,7 @@ def markdown_to_adf(markdown: str) -> dict:
         # Fallback: plain paragraph
         content.append({
             "type": "paragraph",
-            "content": [{"type": "text", "text": line.strip()}],
+            "content": parse_inline(line.strip()),
         })
         i += 1
 
