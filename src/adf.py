@@ -18,17 +18,20 @@ def parse_inline(text: str) -> list:
         last_end = m.end()
     if last_end < len(text):
         nodes.append({"type": "text", "text": text[last_end:]})
+    # Filter out empty text nodes (ADF requires minLength: 1)
+    nodes = [n for n in nodes if n.get("text", "x")]
     return nodes if nodes else [{"type": "text", "text": text}]
 
 
-def collect_task_items(lines, i, min_indent):
+def collect_task_list_content(lines, i, min_indent):
     """
-    Recursively collect task items from lines starting at index i.
-    Only processes items at indentation >= min_indent.
-    Items more indented than min_indent are nested inside the preceding item.
-    Returns (list of taskItem dicts, new index i).
+    Collect task list content from lines starting at index i.
+    Returns a flat list of taskItem and taskList (nested) nodes, plus new index i.
+
+    Per the ADF schema, a taskList.content may contain taskItem and taskList nodes
+    as siblings — a taskList must NOT be nested inside a taskItem's content.
     """
-    task_items = []
+    items = []
     while i < len(lines):
         m = re.match(r'^(\s*)-\s+\[( |x)\]\s+(.*)', lines[i])
         if not m:
@@ -37,23 +40,22 @@ def collect_task_items(lines, i, min_indent):
         if current_indent < min_indent:
             break
         if current_indent > min_indent:
-            # Nested items — attach as a child taskList to the last item
-            nested_items, i = collect_task_items(lines, i, current_indent)
-            if task_items:
-                task_items[-1]["content"].append({
-                    "type": "taskList",
-                    "attrs": {"localId": str(uuid.uuid4())},
-                    "content": nested_items,
-                })
+            # Nested items become a sibling taskList node, not a child of taskItem
+            nested_content, i = collect_task_list_content(lines, i, current_indent)
+            items.append({
+                "type": "taskList",
+                "attrs": {"localId": str(uuid.uuid4())},
+                "content": nested_content,
+            })
             continue
         state = "DONE" if m.group(2) == "x" else "TODO"
-        task_items.append({
+        items.append({
             "type": "taskItem",
             "attrs": {"localId": str(uuid.uuid4()), "state": state},
             "content": parse_inline(m.group(3).strip()),
         })
         i += 1
-    return task_items, i
+    return items, i
 
 
 def markdown_to_adf(markdown: str) -> dict:
@@ -84,11 +86,11 @@ def markdown_to_adf(markdown: str) -> dict:
         # Task list items — collect recursively to handle indented sub-tasks
         if re.match(r'^\s*-\s+\[[ x]\]', line):
             min_indent = len(re.match(r'^(\s*)', line).group(1))
-            task_items, i = collect_task_items(lines, i, min_indent)
+            task_list_content, i = collect_task_list_content(lines, i, min_indent)
             content.append({
                 "type": "taskList",
                 "attrs": {"localId": str(uuid.uuid4())},
-                "content": task_items,
+                "content": task_list_content,
             })
             continue
 
