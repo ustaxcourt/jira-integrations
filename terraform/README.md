@@ -42,12 +42,17 @@ Jira Cloud REST API
    terraform apply
    ```
 
-2. **Create `backend.hcl`** from the provided example, filling in the bootstrap outputs:
+2. **Create `backend.hcl`** using the S3 bucket name from the bootstrap output:
 
-   ```bash
-   cp terraform/backend.hcl.example terraform/backend.hcl
-   # edit terraform/backend.hcl
+   ```hcl
+   bucket       = "<state_bucket_name>"
+   key          = "jira-integrations/terraform.tfstate"
+   region       = "<aws_region>"
+   encrypt      = true
+   use_lockfile = true
    ```
+
+   Save this as `terraform/backend.hcl`. The file is ignored by Git because it contains environment-specific backend configuration.
 
 3. **Build the Lambda package:**
 
@@ -67,9 +72,11 @@ Jira Cloud REST API
 ```bash
 cd terraform
 
-TF_VAR_jira_api_token=<your-token> terraform apply \
-  -var="jira_base_url=https://acme.atlassian.net" \
-  -var="jira_user_email=bot@acme.com"
+TF_VAR_jira_base_url=https://acme.atlassian.net \
+TF_VAR_jira_user_email=bot@acme.com \
+TF_VAR_jira_api_token=<your-token> \
+TF_VAR_webhook_secret=<webhook-secret> \
+terraform apply
 ```
 
 Configure this URL in Jira under **Settings → System → Webhooks → Create webhook**, selecting the **Issue → created** event.
@@ -82,6 +89,7 @@ Configure this URL in Jira under **Settings → System → Webhooks → Create w
 | `jira_base_url`   | _(required)_            | Jira Cloud base URL, e.g. `https://acme.atlassian.net`                   |
 | `jira_user_email` | _(required)_            | Email for Jira API Basic auth                                            |
 | `jira_api_token`  | _(required, sensitive)_ | Jira API token — supply via `TF_VAR_jira_api_token` or a `*.tfvars` file |
+| `webhook_secret`  | `""`                    | Optional secret for validating Jira webhook HMAC signatures               |
 
 > `*.tfvars` files and `backend.hcl` are excluded from source control via `.gitignore`. Never commit credentials.
 
