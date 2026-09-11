@@ -8,7 +8,7 @@ terraform {
     }
   }
 
-  # Backend values are supplied via backend.hcl (copied from backend.hcl.example).
+  # Backend values are supplied via backend.hcl.
   # Run: terraform init -backend-config=backend.hcl
   backend "s3" {}
 }
